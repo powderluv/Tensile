@@ -34,7 +34,7 @@ from . import ClientExecutable
 from . import SolutionLibrary
 from . import LibraryIO
 from . import Utils
-from .BenchmarkStructs import BenchmarkProcess, constructForkPermutations
+from .BenchmarkStructs import BenchmarkProcess
 from .ClientWriter import runClient, writeClientParameters, writeClientConfig
 from .Common import globalParameters, HR, pushWorkingPath, popWorkingPath, print1, print2, printExit, printWarning, ensurePath, startTime
 from .KernelWriterAssembly import KernelWriterAssembly
@@ -234,9 +234,24 @@ def benchmarkProblemType( problemTypeConfig, problemSizeGroupConfig, \
     # Enumerate Benchmark Permutations
     ############################################################################
     solutions = []
+    totalBenchmarkPermutations = 1
+    for benchmarkParamName in benchmarkStep.benchmarkParameters:
+      totalBenchmarkPermutations *= len(benchmarkStep.benchmarkParameters[benchmarkParamName])
+    maxPossibleSolutions = totalBenchmarkPermutations*numHardcoded
+    print1("# MaxPossibleSolutions: %u = %u (hardcoded) * %u (benchmark)" % \
+        (maxPossibleSolutions, numHardcoded, totalBenchmarkPermutations))
 
-    benchmarkPermutations = constructForkPermutations(benchmarkStep.benchmarkParameters)
-    maxPossibleSolutions = len(benchmarkPermutations) * numHardcoded
+    benchmarkPermutations = []
+    for i in range(0, totalBenchmarkPermutations):
+      permutation = {}
+      pIdx = i
+      for benchmarkParamName in benchmarkStep.benchmarkParameters:
+        benchmarkParamValues = deepcopy( \
+            benchmarkStep.benchmarkParameters[benchmarkParamName])
+        valueIdx = pIdx % len(benchmarkParamValues)
+        permutation[benchmarkParamName] = benchmarkParamValues[valueIdx]
+        pIdx /= len(benchmarkParamValues)
+      benchmarkPermutations.append(permutation)
 
     ############################################################################
     # Enumerate Solutions = Hardcoded * Benchmark
